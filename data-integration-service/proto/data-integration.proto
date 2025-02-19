@@ -1,0 +1,83 @@
+syntax = "proto3";
+
+option go_package = "internal/proto";
+
+service DataIngestionService {
+  // Получить данные из источника
+  rpc StreamData (DataRequest) returns (DataResponse);
+
+  // Запрос на подтверждение получения данных
+  rpc ConfirmDataReceived (ConfirmRequest) returns (ConfirmResponse);
+
+  // Статус получения данных
+  rpc GetDataStatus (DataStatusRequest) returns (DataStatusResponse);
+
+  // Получить метаданные о данных
+  rpc GetDataMetadata (DataMetadataRequest) returns (DataMetadataResponse);
+
+  // Запуск повторной обработки данных
+  rpc ReprocessData (ReprocessRequest) returns (ReprocessResponse);
+
+  // Обработка ошибок
+  rpc ReportError (ErrorReportRequest) returns (ErrorReportResponse);
+}
+
+message DataRequest {
+  string source_id = 1;   // Идентификатор источника данных
+  string data_payload = 2; // Данные в виде строки
+  int64 timestamp = 3;     // Временная метка
+}
+
+message DataResponse {
+  bool success = 1;        // Успешность операции
+  string message = 2;      // Сообщение об ошибке или успехе
+}
+
+message ConfirmRequest {
+  string data_id = 1;      // Идентификатор данных, требующих подтверждения
+}
+
+message ConfirmResponse {
+  bool success = 1;        // Успешность подтверждения
+  string message = 2;      // Сообщение об ошибке или успехе
+}
+
+message DataStatusRequest {
+  string data_id = 1;      // Идентификатор данных для запроса статуса
+}
+
+message DataStatusResponse {
+  string status = 1;       // Статус данных (например, "обработано", "в очереди" и т.д.)
+  string message = 2;      // Дополнительная информация о статусе
+}
+
+message DataMetadataRequest {
+  string data_id = 1;      // Идентификатор данных для запроса метаданных
+}
+
+message DataMetadataResponse {
+  string source = 1;       // Источник данных
+  string format = 2;       // Формат данных
+  int64 size = 3;          // Размер данных в байтах
+  int64 timestamp = 4;     // Временная метка получения данных
+}
+
+message ReprocessRequest {
+  string data_id = 1;      // Идентификатор данных для повторной обработки
+}
+
+message ReprocessResponse {
+  bool success = 1;        // Успешность повторной обработки
+  string message = 2;      // Сообщение о результате повторной обработки
+}
+
+message ErrorReportRequest {
+  string error_code = 1;   // Код ошибки
+  string error_message = 2; // Описание ошибки
+  string data_id = 3;      // Идентификатор данных, с которыми возникла ошибка
+}
+
+message ErrorReportResponse {
+  bool success = 1;        // Успешность сообщения об ошибке
+  string message = 2;      // Сообщение о результате обработки ошибки
+}
