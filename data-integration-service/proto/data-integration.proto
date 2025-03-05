@@ -2,82 +2,151 @@ syntax = "proto3";
 
 option go_package = "internal/proto";
 
-service DataIngestionService {
-  // Получить данные из источника
-  rpc StreamData (DataRequest) returns (DataResponse);
+import "google/protobuf/timestamp.proto";
 
-  // Запрос на подтверждение получения данных
-  rpc ConfirmDataReceived (ConfirmRequest) returns (ConfirmResponse);
+// Сервис для обработки данных
+service DataProcessingService {
+  // Метод для обработки данных
+  rpc ProcessData (DataRecord) returns (ProcessResponse);
 
-  // Статус получения данных
+  // Метод для получения метаданных данных по ID
+  rpc GetMetadata (MetadataRequest) returns (MetadataResponse);
+
+  // Метод для получения отчетов об ошибках для определенной записи данных
+  rpc GetErrorReport (ErrorReportRequest) returns (ErrorReportResponse);
+
+  // Метод для потоковой передачи данных
+  rpc StreamData (stream DataRecord) returns (stream ProcessResponse);
+
+  // Метод для получения списка записей данных с пагинацией
+  rpc ListDataRecords (ListDataRequest) returns (ListDataResponse);
+
+  // Метод для удаления записи данных по ID
+  rpc DeleteDataRecord (DeleteDataRequest) returns (DeleteDataResponse);
+
+  // Метод для обновления статуса записи данных
+  rpc UpdateDataStatus (UpdateStatusRequest) returns (UpdateStatusResponse);
+
+  // Метод для получения состояния данных (статуса)
   rpc GetDataStatus (DataStatusRequest) returns (DataStatusResponse);
 
-  // Получить метаданные о данных
-  rpc GetDataMetadata (DataMetadataRequest) returns (DataMetadataResponse);
+  // Метод для получения всех данных с определенного источника
+  rpc GetDataBySource (SourceDataRequest) returns (SourceDataResponse);
 
-  // Запуск повторной обработки данных
-  rpc ReprocessData (ReprocessRequest) returns (ReprocessResponse);
-
-  // Обработка ошибок
-  rpc ReportError (ErrorReportRequest) returns (ErrorReportResponse);
+  // Метод для получения отчета о всех ошибках, связанный с данными
+  rpc GetAllErrorReports (AllErrorReportsRequest) returns (AllErrorReportsResponse);
 }
 
-message DataRequest {
-  string source_id = 1;   // Идентификатор источника данных
-  string data_payload = 2; // Данные в виде строки
-  int64 timestamp = 3;     // Временная метка
+// Структура данных для записи данных
+message DataRecord {
+  string dataID = 1; // Уникальный идентификатор данных
+  string sourceId = 2; // Идентификатор источника данных
+  bytes dataPayload = 3; // Данные в сыром формате
+  google.protobuf.Timestamp timestamp = 4; // Время создания записи данных
+  string status = 5; // Статус обработки данных
+  google.protobuf.Timestamp processedAt = 6; // Время обработки данных
+  string errorMessage = 7; // Сообщение об ошибке, если есть
+  int32 errorCode = 8; // Код ошибки, если есть
 }
 
-message DataResponse {
-  bool success = 1;        // Успешность операции
-  string message = 2;      // Сообщение об ошибке или успехе
+// Ответ на запрос обработки данных
+message ProcessResponse {
+  bool success = 1; // Успешность обработки данных
+  string message = 2; // Сообщение об ошибке или успехе
 }
 
-message ConfirmRequest {
-  string data_id = 1;      // Идентификатор данных, требующих подтверждения
+// Запрос метаданных для конкретных данных
+message MetadataRequest {
+  string dataID = 1; // Уникальный идентификатор данных
 }
 
-message ConfirmResponse {
-  bool success = 1;        // Успешность подтверждения
-  string message = 2;      // Сообщение об ошибке или успехе
+// Ответ с метаданными
+message MetadataResponse {
+  string dataID = 1; // Идентификатор данных
+  string source = 2; // Источник данных
+  string format = 3; // Формат данных
+  int64 size = 4; // Размер данных
+  google.protobuf.Timestamp timestamp = 5; // Время получения метаданных
 }
 
-message DataStatusRequest {
-  string data_id = 1;      // Идентификатор данных для запроса статуса
-}
-
-message DataStatusResponse {
-  string status = 1;       // Статус данных (например, "обработано", "в очереди" и т.д.)
-  string message = 2;      // Дополнительная информация о статусе
-}
-
-message DataMetadataRequest {
-  string data_id = 1;      // Идентификатор данных для запроса метаданных
-}
-
-message DataMetadataResponse {
-  string source = 1;       // Источник данных
-  string format = 2;       // Формат данных
-  int64 size = 3;          // Размер данных в байтах
-  int64 timestamp = 4;     // Временная метка получения данных
-}
-
-message ReprocessRequest {
-  string data_id = 1;      // Идентификатор данных для повторной обработки
-}
-
-message ReprocessResponse {
-  bool success = 1;        // Успешность повторной обработки
-  string message = 2;      // Сообщение о результате повторной обработки
-}
-
+// Запрос для отчета об ошибках
 message ErrorReportRequest {
-  string error_code = 1;   // Код ошибки
-  string error_message = 2; // Описание ошибки
-  string data_id = 3;      // Идентификатор данных, с которыми возникла ошибка
+  string dataID = 1; // Идентификатор данных для запроса отчета
 }
 
+// Ответ с отчетом об ошибках
 message ErrorReportResponse {
-  bool success = 1;        // Успешность сообщения об ошибке
-  string message = 2;      // Сообщение о результате обработки ошибки
+  repeated ErrorReport errors = 1; // Список ошибок для данных
+}
+
+// Структура для описания ошибки
+message ErrorReport {
+  int32 errorCode = 1; // Код ошибки
+  string errorMessage = 2; // Сообщение об ошибке
+  string dataID = 3; // Идентификатор данных
+  google.protobuf.Timestamp timestamp = 4; // Время возникновения ошибки
+}
+
+// Запрос для получения списка данных с пагинацией
+message ListDataRequest {
+  int32 page = 1; // Номер страницы
+  int32 pageSize = 2; // Количество записей на странице
+}
+
+// Ответ со списком данных
+message ListDataResponse {
+  repeated DataRecord records = 1; // Список записей данных
+}
+
+// Запрос на удаление записи данных по ID
+message DeleteDataRequest {
+  string dataID = 1; // Уникальный идентификатор данных
+}
+
+// Ответ на запрос удаления записи данных
+message DeleteDataResponse {
+  bool success = 1; // Успешность удаления данных
+  string message = 2; // Сообщение об удалении
+}
+
+// Запрос на обновление статуса записи данных
+message UpdateStatusRequest {
+  string dataID = 1; // Идентификатор данных
+  string newStatus = 2; // Новый статус
+}
+
+// Ответ на запрос обновления статуса данных
+message UpdateStatusResponse {
+  bool success = 1; // Успешность обновления статуса
+  string message = 2; // Сообщение об обновлении статуса
+}
+
+// Запрос на получение статуса данных
+message DataStatusRequest {
+  string dataID = 1; // Идентификатор данных
+}
+
+// Ответ на запрос статуса данных
+message DataStatusResponse {
+  string dataID = 1; // Идентификатор данных
+  string status = 2; // Статус данных
+  google.protobuf.Timestamp processedAt = 3; // Время последней обработки данных
+}
+
+// Запрос на получение данных по источнику
+message SourceDataRequest {
+  string sourceId = 1; // Идентификатор источника
+}
+
+// Ответ на запрос данных по источнику
+message SourceDataResponse {
+  repeated DataRecord records = 1; // Список записей данных из источника
+}
+
+// Запрос на получение всех отчетов об ошибках
+message AllErrorReportsRequest {}
+
+// Ответ с отчетами об ошибках для всех данных
+message AllErrorReportsResponse {
+  repeated ErrorReport reports = 1; // Список отчетов об ошибках
 }

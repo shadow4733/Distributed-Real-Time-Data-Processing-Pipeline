@@ -1,0 +1,35 @@
+version: '3'
+services:
+  clickhouse:
+    image: yandex/clickhouse-server
+    ports:
+      - "8123:8123"
+      - "9000:9000"
+    volumes:
+      - clickhouse-data:/var/lib/clickhouse
+    restart: always
+    networks:
+      - my_network
+
+  data-integration-service:
+    build: .
+    environment:
+      CLICKHOUSE_HOST: ${CLICKHOUSE_HOST}
+      CLICKHOUSE_PORT: ${CLICKHOUSE_PORT}
+      CLICKHOUSE_USER: ${CLICKHOUSE_USER}
+      CLICKHOUSE_PASSWORD: ""
+      CLICKHOUSE_DATABASE: ${CLICKHOUSE_DATABASE}
+    depends_on:
+      - clickhouse
+    ports:
+      - "50051:50051"
+    restart: always
+    networks:
+      - my_network
+
+networks:
+  my_network:
+    driver: bridge
+
+volumes:
+  clickhouse-data:
