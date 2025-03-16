@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clickhouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clickhouse
+  template:
+    metadata:
+      labels:
+        app: clickhouse
+    spec:
+      containers:
+        - name: clickhouse
+          image: yandex/clickhouse-server
+          ports:
+            - containerPort: 8123
+            - containerPort: 9000
+          env:
+            - name: CLICKHOUSE_USER
+              value: ${CLICKHOUSE_USER}
+            - name: CLICKHOUSE_PASSWORD
+              value: ""
+          volumeMounts:
+            - mountPath: /var/lib/clickhouse
+              name: clickhouse-data
+            - mountPath: /docker-entrypoint-initdb.d
+              name: clickhouse-init-scripts
+              readOnly: true
+      volumes:
+        - name: clickhouse-data
+          persistentVolumeClaim:
+            claimName: clickhouse-pvc
+        - name: clickhouse-init-scripts
+          configMap:
+            name: clickhouse-init-scripts
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clickhouse
+spec:
+  ports:
+    - port: 8123
+      targetPort: 8123
+      name: http
+    - port: 9000
+      targetPort: 9000
+      name: tcp
+  selector:
+    app: clickhouse
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: clickhouse-pvc
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
