@@ -47,6 +47,7 @@ message DataRecord {
   google.protobuf.Timestamp processedAt = 6; // Время обработки данных
   string errorMessage = 7; // Сообщение об ошибке, если есть
   int32 errorCode = 8; // Код ошибки, если есть
+  string category = 9; // Категория данных (например, "weather", "economic", и т. д.)
 }
 
 // Ответ на запрос обработки данных
@@ -67,6 +68,7 @@ message MetadataResponse {
   string format = 3; // Формат данных
   int64 size = 4; // Размер данных
   google.protobuf.Timestamp timestamp = 5; // Время получения метаданных
+  string category = 6;
 }
 
 // Запрос для отчета об ошибках
